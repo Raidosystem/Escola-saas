@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
-import { redis } from '@/lib/redis';
+// import { redis } from '@/lib/redis'; // Comentado para deploy
 
 const FrequenciaLoteSchema = z.object({
   turma_id: z.string().uuid(),
@@ -32,7 +32,8 @@ export async function POST(req: NextRequest) {
   if (errorAlunos) return NextResponse.json({ error: errorAlunos }, { status: 500 });
   // Publish realtime event (lightweight payload)
   try {
-    await redis.publish(`frequencia:${turma_id}`, JSON.stringify({ frequencia_id: freq_id, turma_id, data, etapa }));
+    // await redis.publish(`frequencia:${turma_id}`, JSON.stringify({ frequencia_id: freq_id, turma_id, data, etapa }));
+    console.log('Redis publish skipped for deployment');
   } catch (e) {
     // log silently; not blocking response
     console.error('redis publish error', e);
