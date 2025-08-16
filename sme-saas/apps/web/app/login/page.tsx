@@ -1,9 +1,9 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
   const redirect = search.get('redirect') || '/';
@@ -64,5 +64,13 @@ export default function LoginPage() {
         <p className="text-xs text-neutral-500">Debug: ver console do navegador para erros de login.</p>
       </form>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Carregando...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
