@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 function LoginForm() {
   const router = useRouter();
   const search = useSearchParams();
-  const redirect = search.get('redirect') || '/';
-  const denied = search.get('denied');
+  const redirect = search?.get('redirect') || '/';
+  const denied = search?.get('denied');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
