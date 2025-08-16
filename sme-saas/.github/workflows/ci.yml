@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      - name: Install
+        run: npm install
+        working-directory: sme-saas
+      - name: Lint
+        run: npm run lint --workspaces --if-present
+        working-directory: sme-saas
+      - name: Typecheck
+        run: npx tsc -b
+        working-directory: sme-saas
+      - name: Unit Tests
+        run: npm test --workspaces --if-present
+        working-directory: sme-saas
+      - name: Build Web
+        run: npm run build:web
+        working-directory: sme-saas
+      - name: Lighthouse (home)
+        uses: treosh/lighthouse-ci-action@v11
+        with:
+          urls: 'http://localhost:3000'
+          temporaryPublicStorage: true
+        env:
+          LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
+    services:
+      web:
+        image: node:20
+        ports: ['3000:3000']
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        options: >-
+          --health-cmd="curl -f http://localhost:3000 || exit 1" --health-interval=10s --health-timeout=5s --health-retries=10
+        command: >-
+          bash -lc "cd /github/workspace/sme-saas && npm run dev:web"
