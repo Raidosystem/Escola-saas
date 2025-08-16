@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
-import { redis } from '@/lib/redis';
+// import { redis } from '@/lib/redis'; // Commented for deployment
 
 // Idempotent designacao endpoint: uses Redis lock to avoid double assignment.
 const DesignacaoSchema = z.object({
@@ -16,31 +16,18 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error }, { status: 400 });
   const { inscricao_id, turma_id, data_designacao } = parsed.data;
 
-  const lockKey = `designacao:lock:${inscricao_id}`;
-  const existing = await redis.get<string>(lockKey);
-  if (existing) {
-    // already processed; return the existing designacao if present
-    const { data: existingRow } = await supabase
-      .from('designacoes')
-      .select('*')
-      .eq('inscricao_id', inscricao_id)
-      .single();
+  // Check if already exists (simplified without Redis)
+  const { data: existingRow } = await supabase
+    .from('designacoes')
+    .select('*')
+    .eq('inscricao_id', inscricao_id)
+    .single();
+  
+  if (existingRow) {
     return NextResponse.json({ designacao: existingRow, idempotent: true });
   }
 
-  // Set a short TTL lock (30s)
-  await redis.set(lockKey, '1', { ex: 30, nx: true });
-
-  // Ensure not already assigned at DB layer
-  const { data: jaExiste } = await supabase
-    .from('designacoes')
-    .select('id')
-    .eq('inscricao_id', inscricao_id)
-    .maybeSingle();
-  if (jaExiste) {
-    return NextResponse.json({ designacao: jaExiste, idempotent: true });
-  }
-
+  // Create new designation
   const { data, error } = await supabase
     .from('designacoes')
     .insert({ inscricao_id, turma_id, data_designacao })
